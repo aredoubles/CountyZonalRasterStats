@@ -5,39 +5,71 @@ import json
 from pandas.io.json import json_normalize
 
 '''
-Point this towards the new Bioclim geotiff instead
-Have to specify each band
-There are 19 bands, for the 19 Bioclim variables
+Have to repeat this zonal_stats calculation
+For every year
 '''
-us_bioclim = zonal_stats("Counties/tl_2016_us_county.shp",
-                         "Clim/bioclim_daymet.tif",
-                         stats="mean std", band=1, geojson_out=True)
+# First batch-generate the variable/file names
+str15 = map(str, range(15))
+for x in range(10):
+    str15[x] = str(0) + str15[x]
+clim_nms = range(15)
+for x in range(15):
+    clim_nms[x] = 'bioclim20' + str15[x]
+clim_files = range(15)
+for x in range(15):
+    clim_files[x] = 'Clim/Bioclim/' + clim_nms[x] + '.tif'
 
-# In GeoJSON format...what other options do I have? Otherwise it's a list?
+# Get zonal stats for each year's bioclim data
 
-flatson = json_normalize(precip_2001)
-'''Point this twoards the new Bioclim zonal stats too'''
+'''
+Create a dictionary to hold the zonal stats for each string/variable name
+This test seemed to work fine:
+testdict = {}
+for x in range(15):
+    testdict[x] = x * 5
+'''
+bioclims_all = {}
+
+for x in range(15):
+    bioclims_all[clim_nms[x]] = zonal_stats('Counties/tl_2016_us_county.shp',
+                                            clim_files[x],
+                                            stats="mean std", band=1, geojson_out=True)
+
+'''
+Should look like:
+'bioclim2000' : Huge JSON output
+'bioclim2001' : Huge JSON output
+etc.
+'''
+
+'''
+Original, lone-year implementation
+bioclim_2000 = zonal_stats('Counties/tl_2016_us_county.shp',
+                           'Clim/Bioclim/bioclim_2000.tif',
+                           stats="mean std", band=1, geojson_out=True)
+'''
+
+'''
+# Flatten the JSON file into a dataframe
 flatson = json_normalize(us_bioclim)
 # Takes 2.5 minutes to complete
-
-# crickets.dtypes
-# Columns I want to keep from the JSON 'properties' key:
-# properties.STATEFP, properties.NAME, properties.INTPTLAT,
-# properties.INTPTLON, properties.mean, properties.std
-# These are columns:
-# 12, 13, 17, 19, 20, 21
-
-# crickets.drop(crickets.columns[[0,1,2,3,4,5,6,7,8,9,10,11]],
-# axis=1,inplace=TRUE)
 slimson = flatson[[12, 13, 17, 19, 20, 21]]
 slimson.columns = ['Lat', 'Lon', 'Name', 'State', 'Mean', 'StDev']
 slimson['CtyID'] = slimson['Name'] + '_' + slimson['State']
 slimson = slimson.set_index('CtyID')
-
-
-slimson.ix['Barnstable_25']
-# MA is state #25
-
-# Save this slimmer dataframe as a csv/feather
-
 slimson.to_csv('precip_2001.csv')
+'''
+
+for key in bioclims_all:
+    flatson = json_normalize(bioclims_all[key])
+    slimson = flatson[[12, 13, 17, 19, 20, 21]]
+    slimson.columns = ['Lat', 'Lon', 'Name', 'State', 'Mean', 'StDev']
+    slimson['CtyID'] = slimson['Name'] + '_' + slimson['State']
+    slimson = slimson.set_index('CtyID')
+    fname = key + '.csv'
+    slimson.to_csv(fname)
+
+
+
+# slimson.ix['Barnstable_25']
+# MA is state #25
