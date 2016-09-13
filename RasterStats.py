@@ -7,6 +7,12 @@ import time
 import os
 import glob
 from path import path
+from unidecode import unidecode
+#import sys
+
+# Some county names have special characters, try to avoid in advance
+#reload(sys)
+#sys.setdefaultencoding('utf8')
 
 '''
 Have to repeat this zonal_stats calculation
@@ -32,12 +38,15 @@ for f in bpath.files(pattern='*.tif'):
     print '{} {} {}'.format(time.ctime(), f, 'flattening in progress...')
     flatson = json_normalize(zonesum)
     print '{} {} {}'.format(time.ctime(), f, 'flattening done!')
-    slimson = flatson[[12, 13, 17, 19, 20, 21]]
-    slimson.columns = ['Lat', 'Lon', 'Name', 'State', 'Mean', 'StDev']
-    slimson['CtyID'] = slimson['Name'] + '_' + slimson['State']
+    slimson = flatson[[12, 13, 17, 19, 20]]
+    slimson.columns = ['Lat', 'Lon', 'Name', 'State', 'Mean']
+    # Some county names have unicode characters, decode them
+    # for x in range(len(slimson['Name'])):
+        # slimson['Name'][x] = unidecode(slimson['Name'][x])
+    slimson['CtyID'] = slimson['Name'] + slimson['State'].apply(str)
     slimson = slimson.set_index('CtyID')
     fname = 'bio01_' + f[13:25] + '.csv'    # f sliced to remove dir and ext
-    slimson.to_csv(fname)
+    slimson.to_csv(fname, encoding = 'utf-8')
     print '{} {} {} {} {}'.format(time.ctime(), f, 'flattened into', fname, '!')
 
 
@@ -75,6 +84,3 @@ print flattime
 # slimson.ix['Barnstable_25']
 # MA is state #25
 '''
-Clim/Bioclim/bioclim_2000.tif
-for f in bpath.files(pattern='*.tif'):
-    print f[13:25]
