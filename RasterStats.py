@@ -3,44 +3,43 @@ import pandas as pd
 import numpy as np
 import json
 from pandas.io.json import json_normalize
+import time
+import os
+import glob
+from path import path
 
 '''
 Have to repeat this zonal_stats calculation
-For every year
+For each of 19 bands (bioclim variable)
 '''
-# First batch-generate the variable/file names
-str15 = map(str, range(15))
-for x in range(10):
-    str15[x] = str(0) + str15[x]
-clim_nms = range(15)
-for x in range(15):
-    clim_nms[x] = 'bioclim20' + str15[x]
-clim_files = range(15)
-for x in range(15):
-    clim_files[x] = 'Clim/Bioclim/' + clim_nms[x] + '.tif'
 
-# Get zonal stats for each year's bioclim data
+# Get names of bioclim files
+# Run processing loop for each file
+# Ultimately, should move each of these bioclim files into PostgreSQL,
+# Would most likely make it easier to work with
 
-'''
-Create a dictionary to hold the zonal stats for each string/variable name
-This test seemed to work fine:
-testdict = {}
-for x in range(15):
-    testdict[x] = x * 5
-'''
-bioclims_all = {}
+bpath = path('Clim/Bioclim')
+for f in bpath.files(pattern='*.tif'):
 
-for x in range(15):
-    bioclims_all[clim_nms[x]] = zonal_stats('Counties/tl_2016_us_county.shp',
-                                            clim_files[x],
-                                            stats="mean std", band=1, geojson_out=True)
+    # Get zonal summaries for each year of bioclim data, focusing on Band 1
+    print '{} {} {}'.format(time.ctime(), f, 'zoning in progress...')
+    zonesum = zonal_stats('Counties/tl_2016_us_county.shp', f,
+                          stats='mean', band=1, geojson_out=True)
+    print '{} {} {}'.format(time.ctime(), f, 'zoning done!')
+    # Zonal stats: 861 seconds (14.5 minutes)
 
-'''
-Should look like:
-'bioclim2000' : Huge JSON output
-'bioclim2001' : Huge JSON output
-etc.
-'''
+    # Flatten the resulting zonal summaries, clean, write to file
+    print '{} {} {}'.format(time.ctime(), f, 'flattening in progress...')
+    flatson = json_normalize(zonesum)
+    print '{} {} {}'.format(time.ctime(), f, 'flattening done!')
+    slimson = flatson[[12, 13, 17, 19, 20, 21]]
+    slimson.columns = ['Lat', 'Lon', 'Name', 'State', 'Mean', 'StDev']
+    slimson['CtyID'] = slimson['Name'] + '_' + slimson['State']
+    slimson = slimson.set_index('CtyID')
+    fname = 'bio01_' + f[13:25] + '.csv'    # f sliced to remove dir and ext
+    slimson.to_csv(fname)
+    print '{} {} {} {} {}'.format(time.ctime(), f, 'flattened into', fname, '!')
+
 
 '''
 Original, lone-year implementation
@@ -59,17 +58,23 @@ slimson['CtyID'] = slimson['Name'] + '_' + slimson['State']
 slimson = slimson.set_index('CtyID')
 slimson.to_csv('precip_2001.csv')
 '''
-
+'''
 for key in bioclims_all:
+    print key
     flatson = json_normalize(bioclims_all[key])
     slimson = flatson[[12, 13, 17, 19, 20, 21]]
     slimson.columns = ['Lat', 'Lon', 'Name', 'State', 'Mean', 'StDev']
     slimson['CtyID'] = slimson['Name'] + '_' + slimson['State']
     slimson = slimson.set_index('CtyID')
-    fname = key + '.csv'
+    fname = 'bio01_' + key + '.csv'
     slimson.to_csv(fname)
-
-
+t2 = time.time()
+flattime = t2 - t1
+print flattime
 
 # slimson.ix['Barnstable_25']
 # MA is state #25
+'''
+Clim/Bioclim/bioclim_2000.tif
+for f in bpath.files(pattern='*.tif'):
+    print f[13:25]
