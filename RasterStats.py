@@ -25,9 +25,9 @@ Massively indent, Atom should be able to do that.
 
 bpath = path('Clim/Bioclim')
 
-
-for f in bpath.files(pattern='*.tif'):
-    for x in range(2, 9, 1):
+for x in range(2, 9, 1):
+    print '{} {} {}'.format('BAND', x, 'NOW IN PROGRESS')
+    for f in bpath.files(pattern='*.tif'):
         # Get zonal summaries for each year of bioclim data, focusing on Band 1
         print '{} {} {}'.format(time.ctime(), f, 'zoning in progress...')
         zonesum = zonal_stats('Counties/tl_2016_us_county.shp', f,
@@ -51,6 +51,6 @@ for f in bpath.files(pattern='*.tif'):
         fname = 'bio0' + str(x) + '_' + f[13:25] + '.csv'
         slimson.to_csv(fname, encoding='utf-8')
         print '{} {} {} {} {}'.format(time.ctime(), f, 'flattened into', fname, '!')
-
+    print '{} {} {}'.format('BAND', x, 'NOW COMPLETED!')
 # slimson.ix['Barnstable_25']
 # MA is state #25
