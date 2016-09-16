@@ -4,6 +4,7 @@ from sqlalchemy.schema import CreateSchema
 import psycopg2
 import pandas as pd
 from path import path
+import seaborn as sns
 
 dbname = 'lymeforecast'
 username = 'rogershaw'
@@ -34,7 +35,7 @@ lyme_data['CtyID'] = lyme_data['Ctyname'] + lyme_data['Stcode']
 lyme_data.to_sql('lyme_data_table', engine, if_exists='replace')
 
 lyme_data.to_csv('lyme_CtyID.csv')
-
+lyme_data = pd.read_csv('lyme_CtyID.csv')
 # Should create a Cty_ID column similar to the Bioclim files
 # CtyID = Lancaster31
 
@@ -47,15 +48,15 @@ for x in range(1, 15, 1):
 # Get all/some Bioclim tables into their respective schema
 # Work on Bio01 first
 
-bpath = path('Clim/FlatBioclim/Bio01')
+bpath = path('Clim/FlatBioclim/Bio02')
 for f in bpath.files(pattern='*.csv'):
     yrbio = pd.read_csv(f)
     # Rename the 'mean' column to: mean-bio2-08
-    mncol = 'mean-bio1-' + str(f[-6:-4])
+    mncol = 'mean-bio2-' + str(f[-6:-4])
     yrbio.rename(columns={'Mean': mncol}, inplace=True)
     # Generate a name for the table, including schema
     # schemaname.tablename => bio2-2008
-    tbnm = '{}{}{}'.format('bio1.', 'bio1-', f[-8:-4])
+    tbnm = '{}{}{}'.format('bio2.', 'bio2-', f[-8:-4])
     yrbio.to_sql(tbnm, engine, if_exists='replace')
 
 '''
@@ -66,20 +67,18 @@ Start with Barnstable25
 '''
 barnstable25 = lyme_data[lyme_data['CtyID'] == 'Barnstable025']
 
-barnstable = pd.DataFrame(barnstable25)
-# How did I remove the extraneous columns?
-barnstable = barnstable.ix[:, 4:-1]
-barnstable['variable'] = 'LymeCases'
+barnstable25 = pd.DataFrame(barnstable25)
+barnstable25 = barnstable25.ix[:, 5:-1] # Row vector, cases in each year
+barnstable25= list(barnstable25.ix[1237])
+yrs = range(2000,2015,1)
+newbarn = {'Year' : yrs, 'LymeCases' : barnstable25}
+barnstable = pd.DataFrame(newbarn)
+barnstable['Year2'] = barnstable['Year']
+barnstable = barnstable.set_index('Year')
 
-barnstable = barnstable.set_index('variable')
-barnstable.columns = range(2000, 2015, 1)
-
-for yrcol in range(2000, 2015, 1):
-    barnstable.set_value('Bio01', yrcol, 20)
-
-barnstable.to_csv('barnstable.csv')
-
-for yr in range(2000, 2015, 1):
+for yr in range(2000, 2016, 1):
+    # Create empty row, to be filled
+    #barnstable.set_value('Bio01', yrcol, 20)
     # Get all these variables names set
     yr = str(yr)
     yrvar = '{}{}{}'.format('"mean-bio1-', yr[-2:], '"')
@@ -90,4 +89,23 @@ for yr in range(2000, 2015, 1):
 
     cell_from_sql = pd.read_sql_query(sql_query, con)
 
-    barnstable.set_value('Bio01', int(yr), cell_from_sql.ix[0, yrvar[1:-1]])
+    barnstable.set_value(int(yr),'Bio01',cell_from_sql.ix[0, yrvar[1:-1]])
+    #barnstable.set_value('Bio01', int(yr), cell_from_sql.ix[0, yrvar[1:-1]])
+
+barnstable.set_value(2015,'Year2',2015)
+
+barnstable.to_csv('barnstable.csv')
+barnstable.to_sql('counties.barnstable', engine, if_exists='replace')
+#yrbio.to_sql(tbnm, engine, if_exists='replace')
+
+barnstable = pd.read_csv('barnstable.csv')
+
+# Add 2015 to Year2 column
+
+
+
+'''
+Create another column, with previous year's count.
+For year 1, just use that year's count, I guess
+'''
+for row in barnstable.shape[0]:
