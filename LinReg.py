@@ -1,7 +1,7 @@
 %matplotlib inline
 import pandas as pd
 from sklearn import linear_model, preprocessing
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LinearRegression, Ridge, Lasso
 from sklearn.cross_validation import train_test_split
 from sklearn.metrics import r2_score
 from sklearn.metrics import mean_squared_error
@@ -18,9 +18,10 @@ X[[0]] = preprocessing.scale(barnstable[[2]])  # Standardizes variables
 X[[1]] = preprocessing.scale(barnstable[[3]])  # Center on mean, scale to var
 # X = barnstable[[2]]     # Year only
 y = barnstable[[1]]     # LymeCases
+PredropX = X
 X = X.drop(15)
 y = y.drop(15)
-
+'''Skip ahead to automated random split'''
 X_train = X[0:10]
 y_train = y[0:10]
 
@@ -59,4 +60,43 @@ print('R^2 train: %.3f, test: %.3f' % (
         r2_score(y_test, y_test_pred)))
 # R^2 train: 0.446, test: 0.332
 
-y_2015 = slr.predict()
+slr.fit(X_train, y_train).coef_
+# array([[ 36.02384887,  -5.22981331]])
+
+ result = slr.predict(PredropX.ix[15])
+ result = result[0][0]
+ result = int(result)
+
+'''Ridge regression'''
+
+rrc = Ridge()
+
+rrc.fit(X_train,y_train)
+y_train_pred = rrc.predict(X_train)
+y_test_pred = rrc.predict(X_test)
+
+print('MSE train: %.3f, test: %.3f' % (
+        mean_squared_error(y_train, y_train_pred),
+        mean_squared_error(y_test, y_test_pred)))
+# MSE train: 1144.035, test: 2474.597
+print('R^2 train: %.3f, test: %.3f' % (
+        r2_score(y_train, y_train_pred),
+        r2_score(y_test, y_test_pred)))
+# R^2 train: 0.436, test: 0.253
+# Worse than simple linear regression!
+
+'''Lasso'''
+lasso = Lasso(alpha=0.1)
+lasso.fit(X_train, y_train)
+y_train_pred = lasso.predict(X_train)
+y_test_pred = lasso.predict(X_test)
+
+print('MSE train: %.3f, test: %.3f' % (
+        mean_squared_error(y_train, y_train_pred),
+        mean_squared_error(y_test, y_test_pred)))
+# MSE train: 1124.312, test: 2226.141
+print('R^2 train: %.3f, test: %.3f' % (
+        r2_score(y_train, y_train_pred),
+        r2_score(y_test, y_test_pred)))
+# R^2 train: 0.446, test: 0.328
+# Still worse than simple linear regression!

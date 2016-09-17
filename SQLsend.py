@@ -81,15 +81,15 @@ for yr in range(2000, 2016, 1):
     #barnstable.set_value('Bio01', yrcol, 20)
     # Get all these variables names set
     yr = str(yr)
-    yrvar = '{}{}{}'.format('"mean-bio1-', yr[-2:], '"')
-    yrtab = '{}{}{}'.format('"bio1.bio1-20', yr[-2:], '"')
+    yrvar = '{}{}{}'.format('"mean-bio2-', yr[-2:], '"')
+    yrtab = '{}{}{}'.format('"bio2.bio2-20', yr[-2:], '"')
 
     sql_query = '{} {} {} {} {}'.format('SELECT', yrvar, 'FROM', yrtab,
                                         '''WHERE "CtyID" LIKE 'Barnstable%' ''')
 
     cell_from_sql = pd.read_sql_query(sql_query, con)
 
-    barnstable.set_value(int(yr),'Bio01',cell_from_sql.ix[0, yrvar[1:-1]])
+    barnstable.set_value(int(yr),'Bio02',cell_from_sql.ix[0, yrvar[1:-1]])
     #barnstable.set_value('Bio01', int(yr), cell_from_sql.ix[0, yrvar[1:-1]])
 
 barnstable.set_value(2015,'Year2',2015)
@@ -99,6 +99,7 @@ barnstable.to_sql('counties.barnstable', engine, if_exists='replace')
 #yrbio.to_sql(tbnm, engine, if_exists='replace')
 
 barnstable = pd.read_csv('barnstable.csv')
+barnstable = barnstable.set_index('Year')
 
 # Add 2015 to Year2 column
 
