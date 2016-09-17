@@ -101,12 +101,17 @@ barnstable.to_sql('counties.barnstable', engine, if_exists='replace')
 barnstable = pd.read_csv('barnstable.csv')
 barnstable = barnstable.set_index('Year')
 
-# Add 2015 to Year2 column
 
 
 
 '''
-Create another column, with previous year's count.
-For year 1, just use that year's count, I guess
+Bring lat/lon into Barnstable as well
+Will need to do county name eventually too
 '''
-for row in barnstable.shape[0]:
+barnstable['county'] = 'Barnstable25'
+latlonquery = '''SELECT "Lat", "Lon" FROM "bio1.bio1-2000" WHERE "CtyID" LIKE 'Barnstable%' '''
+latlonsql = pd.read_sql_query(latlonquery, con)
+barnstable['lat'] = latlonsql['Lat'][0]
+barnstable['lon'] = latlonsql['Lon'][0]
+barnstable.to_csv('barnstable.csv')
+barnstable.to_sql('counties.barnstable', engine, if_exists='replace')
