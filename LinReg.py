@@ -13,10 +13,11 @@ barnstable = pd.read_csv('barnstable.csv')
 
 # barnstable.plot(x='Year', y='LymeCases', kind='scatter')
 
-X = barnstable[[2,3,4]]   # Year, Bio01, Bio02
-X[[0]] = preprocessing.scale(barnstable[[2]])  # Standardizes variables
-X[[1]] = preprocessing.scale(barnstable[[3]])  # Center on mean, scale to var
-X[[2]] = preprocessing.scale(barnstable[[4]])
+X = barnstable[[2,3,4,8,9,10,11,12,13]]   # Year, Bio01–08
+X = pd.DataFrame(preprocessing.scale(X))
+#X[[0]] = preprocessing.scale(barnstable[[2]])  # Standardizes variables
+#X[[1]] = preprocessing.scale(barnstable[[3]])  # Center on mean, scale to var
+#X[[2]] = preprocessing.scale(barnstable[[4]])
 # X = barnstable[[2]]     # Year only
 y = barnstable[[1]]     # LymeCases
 PredropX = X
@@ -57,21 +58,24 @@ print('MSE train: %.3f, test: %.3f' % (
         mean_squared_error(y_test, y_test_pred)))
 # MSE train: 1124.252, test: 2212.719       # Bio01
 # MSE train: 1014.180, test: 2946.979       # Bio01, Bio02
+# Severe overfitting with Bio1–8
 print('R^2 train: %.3f, test: %.3f' % (
         r2_score(y_train, y_train_pred),
         r2_score(y_test, y_test_pred)))
 # R^2 train: 0.446, test: 0.332     #Bio01
 # R^2 train: 0.500, test: 0.110     #Bio01, Bio02
+# Severe overfitting with Bio1–8
 
 
 slr.fit(X_train, y_train).coef_
 # array([[ 36.02384887,  -5.22981331]])
 # array([[ 35.75486307, -10.35803815,  18.64272682]])
-slr.fit(X_train, y_train).score(X_test, y_test)
+slr.fit(X_train, y_train).score(X_test, y_test) #R^2 on test set
 
 result = slr.predict(PredropX.ix[15])
 result = result[0][0]
 result = int(result)
+print result
 
 '''Ridge regression'''
 
