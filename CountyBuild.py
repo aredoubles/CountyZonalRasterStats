@@ -27,6 +27,7 @@ def BuildLyme(ctycode0):
     lymebuild = pd.DataFrame(thislyme)
     lymebuild.rename(columns={ctycode0: 'lymecases'}, inplace=True)
     lymebuild['county'] = ctycode0
+    lymebuild.index.name = 'Year'
     return lymebuild
 # Returns 'lymebuild', a dataframe of years x Lyme, county-code
 
