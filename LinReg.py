@@ -8,6 +8,7 @@ from sklearn.metrics import r2_score
 from sklearn.metrics import mean_squared_error
 import random
 import numpy as np
+import pickle
 
 
 grandtable = pd.read_csv('_grandtable.csv')
@@ -21,7 +22,9 @@ futurepredict = grandtable[grandtable.Year == 2015]
 X = trainset.drop(trainset.columns[[0,2,3]], axis=1)
 futureX = futurepredict.drop(futurepredict.columns[[0,2,3]], axis=1)
 
-X = pd.DataFrame(preprocessing.scale(X))
+# Headers lost on this scaling step:
+Xcol = X.columns
+X = pd.DataFrame(preprocessing.scale(X), columns = Xcol)
 y = trainset[[2]]     # LymeCases
 #PredropX = X
 
@@ -54,14 +57,16 @@ print('MSE train: %.3f, test: %.3f' % (
 # MSE train: 1124.252, test: 2212.719       # Bio01
 # MSE train: 1014.180, test: 2946.979       # Bio01, Bio02
 # Severe overfitting with Bio1–8
-# MSE train: 15121.107, test: 20063.472      # Full
+# MSE train: 15121.107, test: 20063.472     # Full bio
+# MSE train: 14737.911, test: 19288.242     # With pop
 print('R^2 train: %.3f, test: %.3f' % (
         r2_score(y_train, y_train_pred),
         r2_score(y_test, y_test_pred)))
 # R^2 train: 0.446, test: 0.332     #Bio01
 # R^2 train: 0.500, test: 0.110     #Bio01, Bio02
 # Severe overfitting with Bio1–8
-# R^2 train: 0.684, test: 0.128     # Full
+# R^2 train: 0.684, test: 0.128     # Full bio
+# R^2 train: 0.692, test: 0.162     # With pop
 
 
 slr.fit(X_train, y_train).coef_
@@ -87,14 +92,16 @@ print('MSE train: %.3f, test: %.3f' % (
         mean_squared_error(y_test, y_test_pred)))
 # MSE train: 1144.035, test: 2474.597       # Bio01
 # MSE train: 1042.990, test: 2817.660       # Bio01, Bio02
-# MSE train: 17178.728, test: 19720.481     # full
+# MSE train: 17178.728, test: 19720.481     # full bio
+# MSE train: 16861.713, test: 18842.148     # with pop
 print('R^2 train: %.3f, test: %.3f' % (
         r2_score(y_train, y_train_pred),
         r2_score(y_test, y_test_pred)))
 # R^2 train: 0.436, test: 0.253
 # R^2 train: 0.486, test: 0.149
 # Worse than simple linear regression!
-# R^2 train: 0.641, test: 0.143     #full
+# R^2 train: 0.641, test: 0.143     #full bio
+# R^2 train: 0.648, test: 0.181     # with pop
 
 '''Lasso'''
 lasso = Lasso(alpha=0.1)
@@ -108,12 +115,14 @@ print('MSE train: %.3f, test: %.3f' % (
 # MSE train: 1124.312, test: 2226.141
 # MSE train: 1014.291, test: 2924.448
 # MSE train: 15562.842, test: 19199.434
+# MSE train: 15229.264, test: 18447.983     # with pop
 print('R^2 train: %.3f, test: %.3f' % (
         r2_score(y_train, y_train_pred),
         r2_score(y_test, y_test_pred)))
 # R^2 train: 0.446, test: 0.328
 # R^2 train: 0.500, test: 0.117
-# R^2 train: 0.675, test: 0.166     # full
+# R^2 train: 0.675, test: 0.166     # full bio
+# R^2 train: 0.682, test: 0.198     # with pop
 # Still worse than simple linear regression!
 
 '''Lasso LARS'''
@@ -125,13 +134,13 @@ y_test_pred = lassol.predict(X_test)
 print('MSE train: %.3f, test: %.3f' % (
         mean_squared_error(y_train, y_train_pred),
         mean_squared_error(y_test, y_test_pred)))
-# MSE train: 4673.540, test: 28406.077      # full
-# MSE train: 17549.219, test: 19599.301     # full, all MA
+# MSE train: 17549.219, test: 19599.301     # full bio
+# MSE train: 17244.574, test: 18728.144     # with pop
 print('R^2 train: %.3f, test: %.3f' % (
         r2_score(y_train, y_train_pred),
         r2_score(y_test, y_test_pred)))
-# R^2 train: 0.832, test: 0.418         # full
-# R^2 train: 0.633, test: 0.148         # full, all MA
+# R^2 train: 0.633, test: 0.148         # full bio
+# R^2 train: 0.640, test: 0.186         # with pop
 # Still worse than simple linear regression!
 
 '''ElasticNet'''
@@ -143,13 +152,13 @@ y_test_pred = elast.predict(X_test)
 print('MSE train: %.3f, test: %.3f' % (
         mean_squared_error(y_train, y_train_pred),
         mean_squared_error(y_test, y_test_pred)))
-# MSE train: 4673.540, test: 28406.077      # full
-# MSE train: 18342.896, test: 19481.151     # full, all MA
+# MSE train: 18342.896, test: 19481.151     # full bio
+# MSE train: 17970.743, test: 17833.676     # with pop
 print('R^2 train: %.3f, test: %.3f' % (
         r2_score(y_train, y_train_pred),
         r2_score(y_test, y_test_pred)))
-# R^2 train: 0.832, test: 0.418         # full
-# R^2 train: 0.617, test: 0.154         # full, all MA
+# R^2 train: 0.617, test: 0.154         # full bio
+# R^2 train: 0.624, test: 0.225         # with pop
 # Still worse than simple linear regression!
 
 '''SVM'''
@@ -169,15 +178,25 @@ print('R^2 train: %.3f, test: %.3f' % (
 
 '''Random Forest Regressor'''
 trees = RandomForestRegressor(oob_score=True)
-trees.fit(X_train, y_train)
+trees.fit(X_train, np.ravel(y_train))
 y_train_pred = trees.predict(X_train)
 y_test_pred = trees.predict(X_test)
 
 print('MSE train: %.3f, test: %.3f' % (
         mean_squared_error(y_train, y_train_pred),
         mean_squared_error(y_test, y_test_pred)))
-# MSE train: 2197.075, test: 14939.625
+# MSE train: 2197.075, test: 14939.625      # full bio
+# MSE train: 1745.783, test: 8238.066       # with pop
 print('R^2 train: %.3f, test: %.3f' % (
         r2_score(y_train, y_train_pred),
         r2_score(y_test, y_test_pred)))
-# R^2 train: 0.954, test: 0.351
+# R^2 train: 0.954, test: 0.351         # full bio
+# R^2 train: 0.964, test: 0.642         # with pop
+
+trees.feature_importances_
+
+with open('rf.pickle', 'wb') as f:
+    pickle.dump(trees, f)
+with open('rf.pickle', 'rb') as f:
+    forest = pickle.load(f)
+    trees = pickle.load(f)
