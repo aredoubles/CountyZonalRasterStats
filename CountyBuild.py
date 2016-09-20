@@ -11,6 +11,8 @@ con = None
 con = psycopg2.connect(database=dbname, user=username)
 
 # Add Lyme Data
+
+
 def BuildLyme(ctycode0):
     lyme_data = pd.read_csv('lyme_CtyID.csv', index_col='CtyID')
     # Subset to just the Years columns
@@ -32,8 +34,10 @@ def BuildLyme(ctycode0):
 # Returns 'lymebuild', a dataframe of years x Lyme, county-code
 
 # Add Bioclim data
+
+
 def BioClim(ctycode, lymebuild, ctycode0):
-    for band in range(1, 19, 1):
+    for band in range(1, 20, 1):
         band0 = '{}{}{}'.format('bio', str(0), band)
         band = 'bio' + str(band)
         for yr in range(2000, 2016, 1):
@@ -56,6 +60,8 @@ def BioClim(ctycode, lymebuild, ctycode0):
 # returns 'countybio', a complete dataframe for a single county
 
 # Add lat/lon
+
+
 def LatLon(ctycode, countybio):      # ctycode = Bioclim, has lat/lon
     quotecounty = '{}{}{}'.format("'", ctycode, "'")
     latlonquery = '{}{}'.format(
@@ -63,11 +69,45 @@ def LatLon(ctycode, countybio):      # ctycode = Bioclim, has lat/lon
     latlonsql = pd.read_sql_query(latlonquery, con)
     countybio['lat'] = latlonsql['Lat'][0]
     countybio['lon'] = latlonsql['Lon'][0]
-    fullcounty = countybio
-    return fullcounty
-# Returns 'fullcounty', a dataframe that also includes lat/lon
+    countyspace = countybio
+    return countyspace
+# Returns 'countyspace', a dataframe that also includes lat/lon
+
+# Add populations
+
+
+def PopAdd(ctycode, countyspace):
+    # for each year of pop, grab cell, add, fill in other values
+    for yr in range(2000, 2016, 5):
+        yr = str(yr)
+        yearfile = '{}{}{}'.format('pop', yr, '.csv')
+        yeartable = '{}{}{}{}'.format('"', 'populations.pop', yr, '"')
+        quotecounty = '{}{}{}'.format("'", ctycode, "'")
+        yrquery = '{} {} {} {}'.format('''SELECT "Mean" FROM''', yeartable,
+                                       '''WHERE "CtyID" =''', quotecounty)
+        cell_from_sql = pd.read_sql_query(yrquery, con)
+        countyspace.set_value(
+            int(yr), 'population', cell_from_sql.ix[0, 0])
+    for yr in range(2001,2005,1):
+        interp = countyspace.ix[2000, 'population']
+        countyspace.set_value(
+            int(yr), 'population', interp)
+    for yr in range(2006,2010,1):
+        interp = countyspace.ix[2005, 'population']
+        countyspace.set_value(
+            int(yr), 'population', interp)
+    for yr in range(2011,2015,1):
+        interp = countyspace.ix[2010, 'population']
+        countyspace.set_value(
+            int(yr), 'population', interp)
+
+    pluspop = countyspace
+    return pluspop
+# Returns 'pluspop', the completed dataframe for the county
 
 # Send to CSV and SQL
+
+
 def Saveways(ctycode, fullcounty):
     namecsv = '{}{}{}'.format('CountyTables/', ctycode, '.csv')
     namesql = 'counties.' + ctycode
@@ -84,7 +124,9 @@ def main():
     ctycode0 = '{}{}{}'.format(county, '0', state)      # Barnstable025, Lyme
     lymebuild = BuildLyme(ctycode0)
     countybio = BioClim(ctycode, lymebuild, ctycode0)
-    fullcounty = LatLon(ctycode, countybio)
+    countyspace = LatLon(ctycode, countybio)
+    pluspop = PopAdd(ctycode, countyspace)
+    fullcounty = pluspop
     Saveways(ctycode, fullcounty)
 
 main()
