@@ -48,7 +48,10 @@ def BioClim(ctycode, lymebuild, ctycode0):
             #yrtab = '{}{}{}'.format('"bio8.bio8-20', yr[-2:], '"')
             yrtab = '{}{}{}{}{}{}{}'.format(
                 '"', band, '.', band, '-20', yr[-2:], '"')
-            ctystrquo = '{}{}{}'.format("'", ctycode, "'")
+            '''Needs to be ctycode0, if state code is < 10. How to tell?'''
+            if ctycode[-2].isdigit() == True:
+                ctystrquo = '{}{}{}'.format("'", ctycode, "'")
+            else: ctystrquo = '{}{}{}'.format("'", ctycode0, "'")
             sql_query = '{} {} {} {} {} {}'.format('SELECT', yrvar, 'FROM', yrtab,
                                                    'WHERE "CtyID" =', ctystrquo)
             cell_from_sql = pd.read_sql_query(sql_query, con)
@@ -62,8 +65,10 @@ def BioClim(ctycode, lymebuild, ctycode0):
 # Add lat/lon
 
 
-def LatLon(ctycode, countybio):      # ctycode = Bioclim, has lat/lon
-    quotecounty = '{}{}{}'.format("'", ctycode, "'")
+def LatLon(ctycode, countybio, ctycode0):      # ctycode = Bioclim, has lat/lon
+    if ctycode[-2].isdigit() == True:
+        quotecounty = '{}{}{}'.format("'", ctycode, "'")
+    else: quotecounty = '{}{}{}'.format("'", ctycode0, "'")
     latlonquery = '{}{}'.format(
         '''SELECT "Lat", "Lon" FROM "bio1.bio1-2000" WHERE "CtyID" = ''', quotecounty)
     latlonsql = pd.read_sql_query(latlonquery, con)
@@ -76,13 +81,15 @@ def LatLon(ctycode, countybio):      # ctycode = Bioclim, has lat/lon
 # Add populations
 
 
-def PopAdd(ctycode, countyspace):
+def PopAdd(ctycode, countyspace, ctycode0):
     # for each year of pop, grab cell, add, fill in other values
     for yr in range(2000, 2016, 5):
         yr = str(yr)
         yearfile = '{}{}{}'.format('pop', yr, '.csv')
         yeartable = '{}{}{}{}'.format('"', 'populations.pop', yr, '"')
-        quotecounty = '{}{}{}'.format("'", ctycode, "'")
+        if ctycode[-2].isdigit() == True:
+            quotecounty = '{}{}{}'.format("'", ctycode, "'")
+        else: quotecounty = '{}{}{}'.format("'", ctycode0, "'")
         yrquery = '{} {} {} {}'.format('''SELECT "Mean" FROM''', yeartable,
                                        '''WHERE "CtyID" =''', quotecounty)
         cell_from_sql = pd.read_sql_query(yrquery, con)
@@ -124,8 +131,8 @@ def main():
     ctycode0 = '{}{}{}'.format(county, '0', state)      # Barnstable025, Lyme
     lymebuild = BuildLyme(ctycode0)
     countybio = BioClim(ctycode, lymebuild, ctycode0)
-    countyspace = LatLon(ctycode, countybio)
-    pluspop = PopAdd(ctycode, countyspace)
+    countyspace = LatLon(ctycode, countybio, ctycode0)
+    pluspop = PopAdd(ctycode, countyspace, ctycode0)
     fullcounty = pluspop
     Saveways(ctycode, fullcounty)
 
