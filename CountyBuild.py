@@ -136,19 +136,34 @@ def Saveways(ctycode, fullcounty):
     fullcounty.to_csv(namecsv)
     fullcounty.to_sql(namesql, engine, if_exists='replace')
 
+def CountyList():
+    bigquery = '''
+    SELECT "Name", "State", "CtyID" FROM "bio1.bio1-2000" WHERE "State" = 25 OR
+    "State" = 44 OR
+    "State" = 9
+    '''
+    biglist = pd.read_sql_query(bigquery, con)
+    return biglist
 
 def main():
+    biglist = CountyList()
+
+    for index, row in biglist.iterrows():
+        ctycode = row['CtyID']                        # Barnstable25, Bioclim
+        ctycode0 = '{}{}{}'.format(row['Name'], '0', row['State'])      # Barnstable025, Lyme
+        lymebuild = BuildLyme(ctycode0)
+        countybio = BioClim(ctycode, lymebuild, ctycode0)
+        countyspace = LatLon(ctycode, countybio, ctycode0)
+        pluspop = PopAdd(ctycode, countyspace, ctycode0)
+        fullcounty = pluspop
+        Saveways(ctycode, fullcounty)
+
     # Input: county, state
     '''IMPORTANT: Need to include single-quotes when entering both!'''
-    county = str(input("County name: "))
-    state = str(input("State number: "))
-    ctycode = county + state                            # Barnstable25, Bioclim
-    ctycode0 = '{}{}{}'.format(county, '0', state)      # Barnstable025, Lyme
-    lymebuild = BuildLyme(ctycode0)
-    countybio = BioClim(ctycode, lymebuild, ctycode0)
-    countyspace = LatLon(ctycode, countybio, ctycode0)
-    pluspop = PopAdd(ctycode, countyspace, ctycode0)
-    fullcounty = pluspop
-    Saveways(ctycode, fullcounty)
+    #county = str(input("County name: "))
+    #state = str(input("State number: "))
+    # ctycode = CountyList()
+    #ctycode = county + state                            # Barnstable25, Bioclim
+    #ctycode0 = '{}{}{}'.format(county, '0', state)      # Barnstable025, Lyme
 
 main()
