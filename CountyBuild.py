@@ -2,6 +2,9 @@ import pandas as pd
 from sqlalchemy import create_engine
 from sqlalchemy_utils import database_exists, create_database
 import psycopg2
+from path import path
+import time
+from progressbar import Bar, Percentage, ProgressBar, ETA
 
 dbname = 'lymeforecast'
 username = 'rogershaw'
@@ -128,25 +131,55 @@ def PopAdd(ctycode, countyspace, ctycode0):
 # Returns 'pluspop', the completed dataframe for the county
 
 # Send to CSV and SQL
-
-
 def Saveways(ctycode, fullcounty):
     namecsv = '{}{}{}'.format('CountyTables/', ctycode, '.csv')
     namesql = 'counties.' + ctycode
     fullcounty.to_csv(namecsv)
     fullcounty.to_sql(namesql, engine, if_exists='replace')
 
+# Generate list of counties to include
 def CountyList():
     bigquery = '''
-    SELECT "Name", "State", "CtyID" FROM "bio1.bio1-2000" WHERE "State" = 25 OR
+    SELECT "Name", "State", "CtyID" FROM "bio1.bio1-2000" WHERE
+    "State" = 25 OR
     "State" = 44 OR
-    "State" = 9
+    "State" = 9 OR
+    "State" = 33 OR
+    "State" = 50
     '''
     biglist = pd.read_sql_query(bigquery, con)
     return biglist
 
+    '''
+    Number of counties:
+    Massachusetts (25): 14
+    Connecticut (9): 8
+    Rhode Island (44): 5
+    New Hampshire (33): 10
+    Vermont (50): 14
+    TOTAL: 51
+    '''
+
+# Combine all counties into a grandtable, save to csv and sql
+def CombineCounties():
+    i=1
+    cpath = path('CountyTables')
+    for f in cpath.files(pattern='*.csv'):
+        if i == 1:   # Seed the grand table with the first county table
+            GrandTable = pd.read_csv(f)
+            i += i
+        else:
+            newcount = pd.read_csv(f)
+            GrandTable = pd.concat([GrandTable, newcount])
+        # Save GrandTable to csv and sql
+        GrandTable.to_csv('_grandtable.csv')
+        GrandTable.to_sql('grandtable', engine, if_exists='replace')
+
 def main():
     biglist = CountyList()
+    totcounties = biglist.shape[0]
+
+    pbar = ProgressBar(widgets=[Percentage(), Bar(), ETA()], maxval=totcounties).start()
 
     for index, row in biglist.iterrows():
         ctycode = row['CtyID']                        # Barnstable25, Bioclim
@@ -157,13 +190,8 @@ def main():
         pluspop = PopAdd(ctycode, countyspace, ctycode0)
         fullcounty = pluspop
         Saveways(ctycode, fullcounty)
-
-    # Input: county, state
-    '''IMPORTANT: Need to include single-quotes when entering both!'''
-    #county = str(input("County name: "))
-    #state = str(input("State number: "))
-    # ctycode = CountyList()
-    #ctycode = county + state                            # Barnstable25, Bioclim
-    #ctycode0 = '{}{}{}'.format(county, '0', state)      # Barnstable025, Lyme
+        pbar.update(index+1)
+    CombineCounties()
+    pbar.finish()
 
 main()
