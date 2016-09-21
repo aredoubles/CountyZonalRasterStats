@@ -87,26 +87,41 @@ def PopAdd(ctycode, countyspace, ctycode0):
         yr = str(yr)
         yearfile = '{}{}{}'.format('pop', yr, '.csv')
         yeartable = '{}{}{}{}'.format('"', 'populations.pop', yr, '"')
+        denstable = '{}{}{}{}'.format('"', 'populations.popdens', yr, '"')
         if ctycode[-2].isdigit() == True:
             quotecounty = '{}{}{}'.format("'", ctycode, "'")
         else: quotecounty = '{}{}{}'.format("'", ctycode0, "'")
         yrquery = '{} {} {} {}'.format('''SELECT "Mean" FROM''', yeartable,
                                        '''WHERE "CtyID" =''', quotecounty)
+        densquery = '{} {} {} {}'.format('''SELECT "Mean" FROM''', denstable,
+                                       '''WHERE "CtyID" =''', quotecounty)
         cell_from_sql = pd.read_sql_query(yrquery, con)
+        dens_from_sql = pd.read_sql_query(densquery, con)
         countyspace.set_value(
             int(yr), 'population', cell_from_sql.ix[0, 0])
+        countyspace.set_value(
+            int(yr), 'popdens', dens_from_sql.ix[0, 0])
     for yr in range(2001,2005,1):
         interp = countyspace.ix[2000, 'population']
+        densinter = countyspace.ix[2000, 'popdens']
         countyspace.set_value(
             int(yr), 'population', interp)
+        countyspace.set_value(
+            int(yr), 'popdens', densinter)
     for yr in range(2006,2010,1):
         interp = countyspace.ix[2005, 'population']
+        densinter = countyspace.ix[2005, 'popdens']
         countyspace.set_value(
             int(yr), 'population', interp)
+        countyspace.set_value(
+            int(yr), 'popdens', densinter)
     for yr in range(2011,2015,1):
         interp = countyspace.ix[2010, 'population']
+        densinter = countyspace.ix[2010, 'popdens']
         countyspace.set_value(
             int(yr), 'population', interp)
+        countyspace.set_value(
+            int(yr), 'popdens', densinter)
 
     pluspop = countyspace
     return pluspop
