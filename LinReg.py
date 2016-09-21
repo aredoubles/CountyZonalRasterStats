@@ -15,8 +15,8 @@ grandtable = pd.read_csv('_grandtable.csv')
 
 # grandtable.plot(x='Year', y='LymeCases', kind='scatter')
 
-trainset = grandtable[grandtable.Year != 2015]
-futurepredict = grandtable[grandtable.Year == 2015]
+trainset = grandtable[grandtable.lymecases.isnull() == False]
+futurepredict = grandtable[grandtable.lymecases.isnull() == True]
 
 # X should drop columns: 0, 2, 3 (24 total columns)
 X = trainset.drop(trainset.columns[[0,2,3]], axis=1)
@@ -59,6 +59,7 @@ print('MSE train: %.3f, test: %.3f' % (
 # Severe overfitting with Bio1–8
 # MSE train: 15121.107, test: 20063.472     # Full bio
 # MSE train: 14737.911, test: 19288.242     # With pop
+# MSE train: 18669.408, test: 17243.482     # w/ NH/VT
 print('R^2 train: %.3f, test: %.3f' % (
         r2_score(y_train, y_train_pred),
         r2_score(y_test, y_test_pred)))
@@ -67,6 +68,7 @@ print('R^2 train: %.3f, test: %.3f' % (
 # Severe overfitting with Bio1–8
 # R^2 train: 0.684, test: 0.128     # Full bio
 # R^2 train: 0.692, test: 0.162     # With pop
+# R^2 train: 0.448, test: 0.352     # w/ NH/VT
 
 
 slr.fit(X_train, y_train).coef_
@@ -187,13 +189,16 @@ print('MSE train: %.3f, test: %.3f' % (
         mean_squared_error(y_test, y_test_pred)))
 # MSE train: 2197.075, test: 14939.625      # full bio
 # MSE train: 1745.783, test: 8238.066       # with pop
+# MSE train: 3361.140, test: 13738.915      # + CT, RI
 print('R^2 train: %.3f, test: %.3f' % (
         r2_score(y_train, y_train_pred),
         r2_score(y_test, y_test_pred)))
 # R^2 train: 0.954, test: 0.351         # full bio
 # R^2 train: 0.964, test: 0.642         # with pop
+# R^2 train: 0.907, test: 0.618         # + CT, RI
 
 trees.feature_importances_
+trees.predict(futureX)
 
 with open('rf.pickle', 'wb') as f:
     pickle.dump(trees, f)

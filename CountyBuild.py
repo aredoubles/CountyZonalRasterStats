@@ -31,8 +31,12 @@ def BuildLyme(ctycode0):
     thislyme = thislyme.ix[5:]     # Row vector, cases in each year
     lymebuild = pd.DataFrame(thislyme)
     lymebuild.rename(columns={ctycode0: 'lymecases'}, inplace=True)
-    lymebuild['county'] = ctycode0
     lymebuild.index.name = 'Year'
+    if ctycode0[-2:] == '09':
+        ctquery = 'SELECT * FROM ct2015'
+        ct15 = pd.read_sql_query(ctquery, con, index_col='county')
+        lymebuild.set_value(2015, 'lymecases', ct15.ix[ctycode0][1])
+    lymebuild['county'] = ctycode0
     return lymebuild
 # Returns 'lymebuild', a dataframe of years x Lyme, county-code
 
@@ -145,7 +149,8 @@ def CountyList():
     "State" = 44 OR
     "State" = 9 OR
     "State" = 33 OR
-    "State" = 50
+    "State" = 50 OR
+    "State" = 23
     '''
     biglist = pd.read_sql_query(bigquery, con)
     return biglist
@@ -157,7 +162,8 @@ def CountyList():
     Rhode Island (44): 5
     New Hampshire (33): 10
     Vermont (50): 14
-    TOTAL: 51
+    Maine (23): 16
+    TOTAL: 67
     '''
 
 # Combine all counties into a grandtable, save to csv and sql
