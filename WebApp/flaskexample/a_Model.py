@@ -1,64 +1,51 @@
-def ModelIt(fromUser  = 'Default', births = []):
-  #in_month = len(births)
-  #print 'The number born is %i' % in_month
+def ModelIt(countyid):
+    #in_month = len(births)
+    #print 'The number born is %i' % in_month
 
-  from sklearn import linear_model, preprocessing
-  from sklearn.linear_model import LinearRegression
-  from sklearn.cross_validation import train_test_split
-  from sklearn.metrics import r2_score
-  from sklearn.metrics import mean_squared_error
-  from sqlalchemy import create_engine
-  from sqlalchemy_utils import database_exists, create_database
-  import pandas as pd
-  import psycopg2
+    import pandas as pd
+    from sklearn import linear_model, preprocessing, svm
+    from sklearn.linear_model import LinearRegression, Ridge, Lasso, LassoLars, ElasticNet
+    from sklearn.cross_validation import train_test_split
+    from sklearn.ensemble import RandomForestRegressor
+    from sklearn.metrics import r2_score
+    from sklearn.metrics import mean_squared_error
+    from sqlalchemy import create_engine
+    from sqlalchemy_utils import database_exists, create_database
+    import psycopg2
+    import random
+    import numpy as np
+    import pickle
 
-  user = 'rogershaw'
-  host = 'localhost'
-  dbname = 'lymeforecast'
-  db = create_engine('postgres://%s%s/%s'%(user,host,dbname))
-  con = None
-  con = psycopg2.connect(database = dbname, user = user)
+    user = 'rogershaw'
+    host = 'localhost'
+    dbname = 'lymeforecast'
+    db = create_engine('postgres://%s%s/%s'%(user,host,dbname))
+    con = None
+    con = psycopg2.connect(database = dbname, user = user)
 
-  query = '''SELECT "Year", "LymeCases", "Bio01" FROM "counties.barnstable"; '''
-  barnstable = pd.read_sql_query(query,con)
+    quoted = '{}{}{}'.format("'", countyid, "'")
+    querycounty = 'SELECT * FROM grandtable WHERE county = ' + quoted
+    thiscounty = pd.read_sql_query(querycounty, con)
 
-  X = barnstable[[0,2]]   # Year, Bio01
-  X[[0]] = preprocessing.scale(barnstable[[0]])   #Standardizes variables
-  X[[1]] = preprocessing.scale(barnstable[[2]])   #Center on mean, scale to var
-  PredropX = X
-  X = X.drop(15)
-  # X = barnstable[[2]]     # Year only
-  y = barnstable[[1]]
-  y = y.drop(15)
-  '''
-  OLD, SIMPLE LINEAR REGRESSION
-  ols = linear_model.LinearRegression()
-  model = ols.fit(X, y)
-  model.coef_                             # Coefficients/weights?
-  R2 = model.score(X, y)             # R^2 score
-  '''
 
-  X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.3, random_state=0)
+    # X should drop columns: 0, 2, 3 (24 total columns)
+    X = thiscounty.drop(thiscounty.columns[[0,2,3]], axis=1)
+    futureX = X.ix[15]
+    X = X.drop([15])
 
-  slr = LinearRegression()
+    # Headers lost on this scaling step:
+    Xcol = X.columns
+    X = pd.DataFrame(preprocessing.scale(X), columns = Xcol)
+    y = thiscounty[[2]]     # LymeCases
+    #PredropX = X
 
-  slr.fit(X_train, y_train)
-  y_train_pred = slr.predict(X_train)
-  y_test_pred = slr.predict(X_test)
+    '''Random Forest Regressor'''
 
-  result = slr.predict(PredropX.ix[15])
-  result = result[0][0]
-  result = int(result)
-  '''
-  OLD RESULT
-  result = model.predict(PredropX.ix[15])
-  result = result[0][0]
-  result = int(result)
-  '''
+    with open('flaskexample/rf.pickle', 'rb') as f:
+        trees = pickle.load(f)
 
-  print result
-  if fromUser != 'Default':
+    predict15 = trees.predict(futureX.reshape(1,-1))
+    result = int(predict15[0])
+
+    print result
     return result
-  else:
-    return 'check your input'
