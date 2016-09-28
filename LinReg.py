@@ -4,28 +4,51 @@ from sklearn import linear_model, preprocessing, svm
 from sklearn.linear_model import LinearRegression, Ridge, Lasso, LassoLars, ElasticNet
 from sklearn.cross_validation import train_test_split
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import r2_score
-from sklearn.metrics import mean_squared_error
+from sklearn.grid_search import RandomizedSearchCV
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.externals import joblib
 import random
 import numpy as np
 import pickle
+from scipy.stats import norm
+import pylab as pl
 
 
 grandtable = pd.read_csv('_grandtable.csv')
 
 # grandtable.plot(x='Year', y='LymeCases', kind='scatter')
+'''Scale features and output, upload to SQL'''
+X = grandtable.drop(grandtable.columns[[0,2,3]], axis=1)
+Xid = grandtable[[3]]
+y = grandtable[[2]]
+Xcol = X.columns
+X = pd.DataFrame(preprocessing.scale(X), columns = Xcol)
+y = np.sqrt(y)
+X['county'] = Xid
+X['lymecases'] = y
+X.to_sql('grandscale', engine, if_exists='replace')
 
+'''Resume here'''
 trainset = grandtable[grandtable.lymecases.isnull() == False]
 futurepredict = grandtable[grandtable.lymecases.isnull() == True]
 
 # X should drop columns: 0, 2, 3 (24 total columns)
 X = trainset.drop(trainset.columns[[0,2,3]], axis=1)
+#X = grandtable.drop(grandtable.columns[[0,2,3]], axis=1)
+#X = trainset.drop(trainset.columns[[0,2,3,5,6,10,11,12,18,23,24]], axis=1)
+#X = trainset.drop(trainset.columns[[0,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,26]], axis=1)
 futureX = futurepredict.drop(futurepredict.columns[[0,2,3]], axis=1)
+fXcol = futureX.columns
+futureX = pd.DataFrame(preprocessing.scale(futureX), columns = fXcol)
+#futureX = futurepredict.drop(futurepredict.columns[[0,2,3,5,6,10,11,12,18,23,24]], axis=1)
+#futureX = futurepredict.drop(futurepredict.columns[[0,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,26]], axis=1)
 
 # Headers lost on this scaling step:
 Xcol = X.columns
 X = pd.DataFrame(preprocessing.scale(X), columns = Xcol)
 y = trainset[[2]]     # LymeCases
+# y is highly skewed, with lots of zeros, so square-root transform (standard for count data)
+y = np.sqrt(y)
 #PredropX = X
 
 X_train, X_test, y_train, y_test = train_test_split(
@@ -179,7 +202,17 @@ print('R^2 train: %.3f, test: %.3f' % (
 # R^2 train: -0.127, test: 0.015
 
 '''Random Forest Regressor'''
-trees = RandomForestRegressor(oob_score=True)
+
+# Try a randomized search for 'n_estimators' (number of trees in forest)
+n_estimators = np.random.normal(1000, 500, 30).astype(int)
+hyperparameters = {'n_estimators':list(n_estimators)}
+
+randomCV = RandomizedSearchCV(RandomForestRegressor(), param_distributions=hyperparameters, n_iter=10)
+randomCV.fit(X_train, np.ravel(y_train))
+best_n_estim = randomCV.best_params_['n_estimators']
+print best_n_estim
+
+trees = RandomForestRegressor(n_estimators = 1000, n_jobs = 2, oob_score=True)
 trees.fit(X_train, np.ravel(y_train))
 y_train_pred = trees.predict(X_train)
 y_test_pred = trees.predict(X_test)
@@ -196,12 +229,30 @@ print('R^2 train: %.3f, test: %.3f' % (
 # R^2 train: 0.954, test: 0.351         # full bio
 # R^2 train: 0.964, test: 0.642         # with pop
 # R^2 train: 0.907, test: 0.618         # + CT, RI
+# R^2 train: 0.944, test: 0.537         # full
 
 trees.feature_importances_
 trees.predict(futureX)
+predict15 = (trees.predict(futureX))*(trees.predict(futureX))
+np.exp(trees.predict(futureX))
 
 with open('rf.pickle', 'wb') as f:
     pickle.dump(trees, f)
 with open('rf.pickle', 'rb') as f:
     forest = pickle.load(f)
     trees = pickle.load(f)
+
+f = 'rf.jblb'
+joblib.dump(trees, f, compress=3)
+crzy = joblib.load(f)
+
+'''Plot predictions vs. actual'''
+r2 = r2_score(y_test, y_test_pred)
+
+pl.clf()
+#pl.scatter(np.log(y_test), np.log(y_test_pred))
+pl.scatter(y_test, y_test_pred)
+pl.plot(np.arange(8, 15), np.arange(8, 15), label="r^2=" + str(r2), c="r")
+pl.legend(loc="lower right")
+pl.title("RandomForest Regression with scikit-learn")
+pl.savefig('RFtest.png')

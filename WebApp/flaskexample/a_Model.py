@@ -3,18 +3,13 @@ def ModelIt(countyid):
     #print 'The number born is %i' % in_month
 
     import pandas as pd
-    from sklearn import linear_model, preprocessing, svm
-    from sklearn.linear_model import LinearRegression, Ridge, Lasso, LassoLars, ElasticNet
-    from sklearn.cross_validation import train_test_split
     from sklearn.ensemble import RandomForestRegressor
-    from sklearn.metrics import r2_score
-    from sklearn.metrics import mean_squared_error
+    from sklearn.externals import joblib
     from sqlalchemy import create_engine
     from sqlalchemy_utils import database_exists, create_database
     import psycopg2
     import random
     import numpy as np
-    import pickle
 
     user = 'rogershaw'
     host = 'localhost'
@@ -24,28 +19,35 @@ def ModelIt(countyid):
     con = psycopg2.connect(database = dbname, user = user)
 
     quoted = '{}{}{}'.format("'", countyid, "'")
-    querycounty = 'SELECT * FROM grandtable WHERE county = ' + quoted
+    querycounty = 'SELECT * FROM grandscale WHERE county = ' + quoted
     thiscounty = pd.read_sql_query(querycounty, con)
 
 
     # X should drop columns: 0, 2, 3 (24 total columns)
-    X = thiscounty.drop(thiscounty.columns[[0,2,3]], axis=1)
-    futureX = X.ix[15]
-    X = X.drop([15])
+    X = thiscounty.drop(thiscounty.columns[[0,25,26]], axis=1)
+    #futureX = X.ix[15]
+    #X = X.drop([15])
 
     # Headers lost on this scaling step:
-    Xcol = X.columns
-    X = pd.DataFrame(preprocessing.scale(X), columns = Xcol)
-    y = thiscounty[[2]]     # LymeCases
+    #Xcol = X.columns
+    #X = pd.DataFrame(preprocessing.scale(X), columns = Xcol)
+    futureX = X.ix[15]
+    #futureX = preprocessing.scale(futureX)
+    y = thiscounty[[26]]     # LymeCases
     #PredropX = X
 
     '''Random Forest Regressor'''
 
-    with open('flaskexample/rf.pickle', 'rb') as f:
-        trees = pickle.load(f)
+    #with open('flaskexample/rf_sqrt.pickle', 'rb') as f:
+        #trees = pickle.load(f)
+
+    f = 'flaskexample/rf.jblb'
+    trees = joblib.load(f)
 
     predict15 = trees.predict(futureX.reshape(1,-1))
-    result = int(predict15[0])
+    #predict15 = trees.predict(futureX)
+    preresult = int(predict15[0])
+    result = preresult * preresult
 
     print result
     return result

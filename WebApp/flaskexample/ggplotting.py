@@ -11,9 +11,6 @@ def PlotIt(countyid, countyname, the_result):
     import matplotlib
     matplotlib.use('Agg') # this allows PNG plotting
     import matplotlib.pyplot as plt
-    from bokeh.plotting import figure
-    from bokeh.resources import CDN
-    from bokeh.embed import file_html
 
 
     dbname = 'lymeforecast'

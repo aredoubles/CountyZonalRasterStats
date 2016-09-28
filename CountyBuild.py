@@ -150,7 +150,10 @@ def CountyList():
     "State" = 9 OR
     "State" = 33 OR
     "State" = 50 OR
-    "State" = 23
+    "State" = 23 OR
+    "State" = 36 OR
+    "State" = 42 OR
+    "State" = 34
     '''
     biglist = pd.read_sql_query(bigquery, con)
     return biglist
@@ -163,7 +166,11 @@ def CountyList():
     New Hampshire (33): 10
     Vermont (50): 14
     Maine (23): 16
-    TOTAL: 67
+    New York (36): 62
+    Pennsylvania (42): 67
+    New Jersey (34): 21
+    Maryland (24): 24
+    TOTAL: 241
     '''
 
 # Combine all counties into a grandtable, save to csv and sql
@@ -178,8 +185,8 @@ def CombineCounties():
             newcount = pd.read_csv(f)
             GrandTable = pd.concat([GrandTable, newcount])
         # Save GrandTable to csv and sql
-        GrandTable.to_csv('_grandtable.csv')
-        GrandTable.to_sql('grandtable', engine, if_exists='replace')
+    GrandTable.to_csv('_grandtable.csv')
+    GrandTable.to_sql('grandtable', engine, if_exists='replace')
 
 def main():
     biglist = CountyList()
