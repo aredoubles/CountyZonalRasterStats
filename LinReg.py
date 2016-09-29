@@ -9,15 +9,14 @@ from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.externals import joblib
 import random
 import numpy as np
-import pickle
 from scipy.stats import norm
 import pylab as pl
+import math
 
 
 grandtable = pd.read_csv('_grandtable.csv')
 
 # grandtable.plot(x='Year', y='LymeCases', kind='scatter')
-'''Scale features and output, upload to SQL'''
 X = grandtable.drop(grandtable.columns[[0,2,3]], axis=1)
 Xid = grandtable[[3]]
 y = grandtable[[2]]
@@ -26,30 +25,19 @@ X = pd.DataFrame(preprocessing.scale(X), columns = Xcol)
 y = np.sqrt(y)
 X['county'] = Xid
 X['lymecases'] = y
+X = X.set_index('county')
+grandscale = X
+
+'''For SQL upload'''
 X.to_sql('grandscale', engine, if_exists='replace')
 
 '''Resume here'''
-trainset = grandtable[grandtable.lymecases.isnull() == False]
-futurepredict = grandtable[grandtable.lymecases.isnull() == True]
+trainset = grandscale[grandscale.lymecases.isnull() == False]
+futurepredict = grandscale[grandscale.lymecases.isnull() == True]
 
-# X should drop columns: 0, 2, 3 (24 total columns)
-X = trainset.drop(trainset.columns[[0,2,3]], axis=1)
-#X = grandtable.drop(grandtable.columns[[0,2,3]], axis=1)
-#X = trainset.drop(trainset.columns[[0,2,3,5,6,10,11,12,18,23,24]], axis=1)
-#X = trainset.drop(trainset.columns[[0,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,26]], axis=1)
-futureX = futurepredict.drop(futurepredict.columns[[0,2,3]], axis=1)
-fXcol = futureX.columns
-futureX = pd.DataFrame(preprocessing.scale(futureX), columns = fXcol)
-#futureX = futurepredict.drop(futurepredict.columns[[0,2,3,5,6,10,11,12,18,23,24]], axis=1)
-#futureX = futurepredict.drop(futurepredict.columns[[0,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,26]], axis=1)
-
-# Headers lost on this scaling step:
-Xcol = X.columns
-X = pd.DataFrame(preprocessing.scale(X), columns = Xcol)
-y = trainset[[2]]     # LymeCases
-# y is highly skewed, with lots of zeros, so square-root transform (standard for count data)
-y = np.sqrt(y)
-#PredropX = X
+X = trainset.drop('lymecases', axis=1)    # Strip lymecases away from trainset
+y = trainset[[24]]    # Isolate lymecases away from trainset
+futureX = futurepredict.drop('lymecases', axis=1)      # Stip lymecases away from futurepredict
 
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.3, random_state=0)
@@ -223,6 +211,8 @@ print('MSE train: %.3f, test: %.3f' % (
 # MSE train: 2197.075, test: 14939.625      # full bio
 # MSE train: 1745.783, test: 8238.066       # with pop
 # MSE train: 3361.140, test: 13738.915      # + CT, RI
+# MSE train: 0.014, test: 0.100             # log-transformed
+# MSE train: 1.220, test: 8.254             # sqrt-transformed
 print('R^2 train: %.3f, test: %.3f' % (
         r2_score(y_train, y_train_pred),
         r2_score(y_test, y_test_pred)))
@@ -230,11 +220,19 @@ print('R^2 train: %.3f, test: %.3f' % (
 # R^2 train: 0.964, test: 0.642         # with pop
 # R^2 train: 0.907, test: 0.618         # + CT, RI
 # R^2 train: 0.944, test: 0.537         # full
+# R^2 train: 0.979, test: 0.841         # log-transformed
+# R^2 train: 0.971, test: 0.784         # sqrt-transformed, but large values better predicted?
 
 trees.feature_importances_
 trees.predict(futureX)
-predict15 = (trees.predict(futureX))*(trees.predict(futureX))
-np.exp(trees.predict(futureX))
+predict15 = pd.DataFrame((trees.predict(futureX))*(trees.predict(futureX)))
+predict15['county'] = futureX.index
+predict15 = predict15.set_index('county')
+predict15.rename(columns={0:'lymecasespred'}, inplace=True)
+'''Save to csv, upload to SQL database'''
+predict15.to_csv('predict15.csv')
+predict15.to_sql('predict15', engine, if_exists='replace')
+'''Resume'''
 
 with open('rf.pickle', 'wb') as f:
     pickle.dump(trees, f)
@@ -252,7 +250,7 @@ r2 = r2_score(y_test, y_test_pred)
 pl.clf()
 #pl.scatter(np.log(y_test), np.log(y_test_pred))
 pl.scatter(y_test, y_test_pred)
-pl.plot(np.arange(8, 15), np.arange(8, 15), label="r^2=" + str(r2), c="r")
+pl.plot(label="r^2=" + str(r2), c="r")
 pl.legend(loc="lower right")
 pl.title("RandomForest Regression with scikit-learn")
-pl.savefig('RFtest.png')
+pl.savefig('RFtest_sqrt.png')
