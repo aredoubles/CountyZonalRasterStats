@@ -46,8 +46,18 @@ def ModelIt(countyid):
 
     predict15 = trees.predict(futureX.reshape(1,-1))
     #predict15 = trees.predict(futureX)
-    preresult = int(predict15[0])
-    result = preresult * preresult
+    preresult = predict15[0]
+    result = int(preresult*preresult)
 
     print result
+    return result
+
+def DrawCis(countyid):
+    import pandas as pd
+
+    predict15 = pd.read_csv('flaskexample/static/predict15.csv', index_col = 'county')
+
+    thiscounty = predict15.ix[countyid][0]
+
+    result = int(thiscounty)
     return result

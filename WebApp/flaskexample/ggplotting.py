@@ -11,6 +11,7 @@ def PlotIt(countyid, countyname, the_result):
     import matplotlib
     matplotlib.use('Agg') # this allows PNG plotting
     import matplotlib.pyplot as plt
+    plt.style.use('seaborn-white')
 
 
     dbname = 'lymeforecast'
@@ -39,7 +40,7 @@ def PlotIt(countyid, countyname, the_result):
 
     '''Plotting'''
     # generate matplotlib plot
-    fig = plt.figure(figsize=(5,4),dpi=100)
+    fig = plt.figure(figsize=(7,5),dpi=100)
     axes = fig.add_subplot(1,1,1)
     # plot the data
     axes.plot(thiscounty.Year,thiscounty.lymecases,'-')

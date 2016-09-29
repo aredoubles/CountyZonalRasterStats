@@ -1,6 +1,6 @@
 from flask import render_template, request
 from flaskexample import app
-from a_Model import ModelIt
+from a_Model import ModelIt, DrawCis
 from LatLon import LatLon
 from ggplotting import PlotIt
 from sqlalchemy import create_engine
@@ -37,7 +37,8 @@ def cesareans_output():
     else:
         countyname = countyid[:-2] + ' County'
 
-    the_result = ModelIt(countyid)
+    #the_result = ModelIt(countyid)
+    the_result = DrawCis(countyid)
     plotPng = PlotIt(countyid, countyname, the_result)
     return render_template("output.html", countyid=countyid, countyname=countyname, the_result=the_result, plotPng=plotPng)
 
