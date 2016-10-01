@@ -22,7 +22,7 @@ Xid = grandtable[[3]]
 y = grandtable[[2]]
 Xcol = X.columns
 X = pd.DataFrame(preprocessing.scale(X), columns = Xcol)
-y = np.sqrt(y)
+#y = np.sqrt(y)
 X['county'] = Xid
 X['lymecases'] = y
 X = X.set_index('county')
@@ -37,6 +37,7 @@ futurepredict = grandscale[grandscale.lymecases.isnull() == True]
 
 X = trainset.drop('lymecases', axis=1)    # Strip lymecases away from trainset
 y = trainset[[24]]    # Isolate lymecases away from trainset
+y = np.sqrt(y)
 futureX = futurepredict.drop('lymecases', axis=1)      # Stip lymecases away from futurepredict
 
 X_train, X_test, y_train, y_test = train_test_split(

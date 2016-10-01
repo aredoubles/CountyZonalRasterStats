@@ -54,10 +54,26 @@ def ModelIt(countyid):
 
 def DrawCis(countyid):
     import pandas as pd
+    from sqlalchemy import create_engine
+    from sqlalchemy_utils import database_exists, create_database
+    import psycopg2
+    import numpy as np
 
-    predict15 = pd.read_csv('flaskexample/static/predict15.csv', index_col = 'county')
+    user = 'rogershaw'
+    host = 'localhost'
+    dbname = 'lymeforecast'
+    db = create_engine('postgres://%s%s/%s'%(user,host,dbname))
+    con = None
+    con = psycopg2.connect(database = dbname, user = user)
 
-    thiscounty = predict15.ix[countyid][0]
+    quoted = '{}{}{}'.format("'", countyid, "'")
+    querycounty = 'SELECT * FROM predict15 WHERE county = ' + quoted
+    thiscounty = pd.read_sql_query(querycounty, con)
 
-    result = int(thiscounty)
+    #predict15 = pd.read_csv('flaskexample/static/predict15.csv', index_col = 'county')
+    #thiscounty = predict15.ix[countyid]
+
+    '''Extract 2015 and 2016 values, or just pass on array here?'''
+    result = thiscounty['lymecasespred']
+
     return result

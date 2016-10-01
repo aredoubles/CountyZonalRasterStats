@@ -2,7 +2,7 @@ from flask import render_template, request
 from flaskexample import app
 from a_Model import ModelIt, DrawCis
 from LatLon import LatLon
-from ggplotting import PlotIt
+from ggplotting import PlotIt, OverPlot
 from sqlalchemy import create_engine
 from sqlalchemy_utils import database_exists, create_database
 import pandas as pd
@@ -39,8 +39,10 @@ def cesareans_output():
 
     #the_result = ModelIt(countyid)
     the_result = DrawCis(countyid)
-    plotPng = PlotIt(countyid, countyname, the_result)
-    return render_template("output.html", countyid=countyid, countyname=countyname, the_result=the_result, plotPng=plotPng)
+    plotPng = OverPlot(countyid, countyname, the_result)
+    pred15 = int(the_result[0])
+    pred16 = int(the_result[1])
+    return render_template("output.html", countyid=countyid, countyname=countyname, plotPng=plotPng, pred15=pred15, pred16=pred16)
 
 
 @app.route('/about')

@@ -32,10 +32,10 @@ def BuildLyme(ctycode0):
     lymebuild = pd.DataFrame(thislyme)
     lymebuild.rename(columns={ctycode0: 'lymecases'}, inplace=True)
     lymebuild.index.name = 'Year'
-    if ctycode0[-2:] == '09':
-        ctquery = 'SELECT * FROM ct2015'
-        ct15 = pd.read_sql_query(ctquery, con, index_col='county')
-        lymebuild.set_value(2015, 'lymecases', ct15.ix[ctycode0][1])
+    #if ctycode0[-2:] == '09':
+    #    ctquery = 'SELECT * FROM ct2015'
+    #    ct15 = pd.read_sql_query(ctquery, con, index_col='county')
+    #    lymebuild.set_value(2015, 'lymecases', ct15.ix[ctycode0][1])
     lymebuild['county'] = ctycode0
     return lymebuild
 # Returns 'lymebuild', a dataframe of years x Lyme, county-code
@@ -47,7 +47,7 @@ def BioClim(ctycode, lymebuild, ctycode0):
     for band in range(1, 20, 1):
         band0 = '{}{}{}'.format('bio', str(0), band)
         band = 'bio' + str(band)
-        for yr in range(2000, 2016, 1):
+        for yr in range(2000, 2017, 1):
             # Get all these variables names set
             yr = str(yr)
             #yrvar = '{}{}{}'.format('"mean-bio8-', yr[-2:], '"')
@@ -65,6 +65,8 @@ def BioClim(ctycode, lymebuild, ctycode0):
             lymebuild.set_value(
                 int(yr), band0, cell_from_sql.ix[0, yrvar[1:-1]])
     lymebuild.set_value(2015, 'county', ctycode0)
+    lymebuild.set_value(2016, 'county', ctycode0)
+    #lymebuild.set_value(1999, 'county', ctycode0)
     countybio = lymebuild
     return countybio
 # returns 'countybio', a complete dataframe for a single county
@@ -129,6 +131,13 @@ def PopAdd(ctycode, countyspace, ctycode0):
             int(yr), 'population', interp)
         countyspace.set_value(
             int(yr), 'popdens', densinter)
+    for yr in range(2016,2017,1):
+        interp = countyspace.ix[2015, 'population']
+        densinter = countyspace.ix[2015, 'popdens']
+        countyspace.set_value(
+            int(yr), 'population', interp)
+        countyspace.set_value(
+            int(yr), 'popdens', densinter)
 
     pluspop = countyspace
     return pluspop
@@ -169,8 +178,7 @@ def CountyList():
     New York (36): 62
     Pennsylvania (42): 67
     New Jersey (34): 21
-    Maryland (24): 24
-    TOTAL: 241
+    TOTAL: 217
     '''
 
 # Combine all counties into a grandtable, save to csv and sql
