@@ -1,4 +1,4 @@
-# The Lyme Forecast
+![Header](WebApp/flaskexample/static/Header.png)
 
 Lyme disease is a major public health concern, affecting 30,000–300,000 people per year in the United States, mostly in the northeast and upper midwest. When left untreated, it can become a painful chronic condition for sufferers. However, treatment with antibiotics is straightforward when the infection is caught early, and so it is important for health practitioners and the general public to be informed about the early symptoms of Lyme disease, and methods for limiting exposure to disease vectors.
 
@@ -29,7 +29,7 @@ Just select a county that you are interested in, and the app will show historica
     * This data was summarized within counties using the `PopZones.py` script, again using the `rasterio` Python package, and stored in a Postgres database.
 * Lyme disease, climate, and population data was then combined using the `CountyBuild.py` script, and stored in the Postgres database.
 * In total, this project produced 550+ data tables that needed to be managed! 300+ of those tables needed to be queried in order to begin running analyses.
-* The data was analyzed using a Random Forest Regression algorithm, using climate and population features to explain the number of cases of Lyme disease in each county and year.
+* The data was analyzed using a Random Forest Regression algorithm, using climate and population features to explain the number of cases of Lyme disease in each county and year, in the `LinReg.py` script.
     * The algorithm was trained on a subset of the data, then performance was validating on a remaining subset.
         * On this validation set, the algorithm produced an R^2 value of 0.78, which is quite good!
 
